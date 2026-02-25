@@ -14,3 +14,7 @@ venv/
 # Misc
 .DS_Store
 *.zip
+
+# Test response files
+infra/response.json
+infra/api-response.json
