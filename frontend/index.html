@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stock Top Movers</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      color: #ffffff;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      color: #888;
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: #212435;
+    }
+
+    thead th {
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+    }
+
+    tbody tr {
+      border-top: 1px solid #2a2d3a;
+      transition: background 0.2s;
+    }
+
+    tbody tr:hover {
+      background: #212435;
+    }
+
+    td {
+      padding: 16px 20px;
+      font-size: 0.95rem;
+    }
+
+    .ticker {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
+    }
+
+    .gain {
+      color: #00c896;
+      font-weight: 600;
+    }
+
+    .loss {
+      color: #ff4d6d;
+      font-weight: 600;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #888;
+    }
+
+    .error {
+      text-align: center;
+      padding: 60px;
+      color: #ff4d6d;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge-gain {
+      background: rgba(0, 200, 150, 0.15);
+      color: #00c896;
+    }
+
+    .badge-loss {
+      background: rgba(255, 77, 109, 0.15);
+      color: #ff4d6d;
+    }
+
+    .last-updated {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1> Daily Top Movers</h1>
+      <p>Tracking the biggest daily % change across our watchlist</p>
+    </header>
+
+    <div class="card">
+      <div id="content" class="loading">Loading market data...</div>
+    </div>
+    <p class="last-updated" id="last-updated"></p>
+  </div>
+
+  <script>
+    const API_URL = "https://kczb47v9bb.execute-api.us-east-1.amazonaws.com/prod/movers";
+
+    async function fetchMovers() {
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("API request failed");
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+          document.getElementById("content").innerHTML =
+            '<div class="loading">No data available yet. Check back after market close.</div>';
+          return;
+        }
+
+        const rows = data.map(item => {
+          const pct = parseFloat(item.pct_change);
+          const isGain = pct >= 0;
+          const sign = isGain ? "+" : "";
+          const badgeClass = isGain ? "badge-gain" : "badge-loss";
+          const pctClass = isGain ? "gain" : "loss";
+
+          return `
+            <tr>
+              <td>${item.date}</td>
+              <td class="ticker">${item.ticker}</td>
+              <td class="${pctClass}">
+                <span class="badge ${badgeClass}">${sign}${pct.toFixed(2)}%</span>
+              </td>
+              <td>$${parseFloat(item.close_price).toFixed(2)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        document.getElementById("content").innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Ticker</th>
+                <th>% Change</th>
+                <th>Close Price</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        `;
+
+        document.getElementById("last-updated").textContent =
+          `Last updated: ${new Date().toLocaleString()}`;
+
+      } catch (err) {
+        document.getElementById("content").innerHTML =
+          `<div class="error">Failed to load data. Please try again later.</div>`;
+        console.error(err);
+      }
+    }
+
+    fetchMovers();
+  </script>
+</body>
+</html>

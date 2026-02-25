@@ -1,0 +1,1 @@
+{"statusCode": 200, "headers": {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,OPTIONS", "Access-Control-Allow-Headers": "Content-Type"}, "body": "[{\"date\": \"2026-02-25\", \"close_price\": \"409.38\", \"pct_change\": \"2.4731\", \"ticker\": \"TSLA\"}]"}

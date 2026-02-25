@@ -19,9 +19,8 @@ def get_api_key():
 
 
 def get_stock_data(ticker, api_key):
-    """Fetch daily open/close data for a single ticker from Massive."""
-    today = datetime.now().strftime("%Y-%m-%d")
-    url = f"https://api.massivedata.io/v1/aggs/ticker/{ticker}/range/1/day/{today}/{today}?apiKey={api_key}"
+    """Fetch previous day OHLC data for a single ticker from Massive."""
+    url = f"https://api.massive.com/v2/aggs/ticker/{ticker}/prev?apiKey={api_key}"
 
     try:
         req = urllib.request.Request(url)
@@ -43,6 +42,10 @@ def get_stock_data(ticker, api_key):
                 "close": close_price,
                 "pct_change": round(pct_change, 4)
             }
+
+    except Exception as e:
+        print(f"Error fetching data for {ticker}: {str(e)}")
+        return None
 
     except Exception as e:
         print(f"Error fetching data for {ticker}: {str(e)}")
