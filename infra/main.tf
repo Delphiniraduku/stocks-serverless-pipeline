@@ -9,6 +9,14 @@ terraform {
       version = "~> 3.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "stocks-pipeline-tfstate-274955213565"
+    key            = "prod/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "stocks-pipeline-tfstate-lock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
