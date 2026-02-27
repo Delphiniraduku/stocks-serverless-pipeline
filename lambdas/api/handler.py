@@ -2,10 +2,19 @@ import json
 import os
 import boto3
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 # Constants
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE")
 AWS_REGION_NAME = os.environ.get("AWS_REGION_NAME", "us-east-1")
+
+
+class DecimalEncoder(json.JSONEncoder):
+    """Handle DynamoDB Decimal types for JSON serialization."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return str(obj)
+        return super().default(obj)
 
 
 def get_last_7_days():
@@ -32,7 +41,10 @@ def lambda_handler(event, context):
         try:
             response = table.get_item(Key={"date": date})
             if "Item" in response:
-                results.append(response["Item"])
+                item = response["Item"]
+                # Remove TTL field from response - frontend doesn't need it
+                item.pop("ttl", None)
+                results.append(item)
         except Exception as e:
             print(f"Error fetching data for {date}: {str(e)}")
 
@@ -49,5 +61,5 @@ def lambda_handler(event, context):
             "Access-Control-Allow-Methods": "GET,OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type"
         },
-        "body": json.dumps(results)
+        "body": json.dumps(results, cls=DecimalEncoder)
     }
