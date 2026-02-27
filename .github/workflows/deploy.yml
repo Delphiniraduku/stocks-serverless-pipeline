@@ -1,0 +1,83 @@
+name: Deploy Stocks Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Step 3: Set up Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      # Step 4: Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 5: Validate Python Lambda files
+      - name: Validate Lambda functions
+        run: |
+          python -m py_compile lambdas/ingestion/handler.py
+          python -m py_compile lambdas/api/handler.py
+          python -m py_compile scripts/backfill.py
+          echo "All Lambda files validated successfully"
+
+      # Step 6: Terraform init and apply
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve
+
+      # Step 7: Deploy frontend to S3
+      - name: Deploy frontend to S3
+        run: |
+          BUCKET=$(aws s3 ls | grep stocks-pipeline-frontend | awk '{print $3}')
+          aws s3 cp frontend/index.html s3://$BUCKET/index.html --region us-east-1
+          echo "Frontend deployed to S3 bucket: $BUCKET"
+```
+
+Save with **Ctrl + S**.
+
+**Why this is the most impressive improvement:**
+
+Right now to deploy any change you have to manually run `terraform apply` and `aws s3 cp` yourself. This CI/CD pipeline means from now on every time you push code to GitHub, AWS automatically:
+
+1. Checks out your code
+2. Validates all your Python Lambda files
+3. Runs `terraform validate` to check for IaC errors
+4. Runs `terraform apply` to deploy infrastructure changes
+5. Uploads the latest frontend to S3
+
+This is exactly how every real company deploys software. No engineer manually runs deployment commands — it's all automated through a pipeline. Adding this to an interview project shows you understand the full software delivery lifecycle, not just writing code.
+
+Now we need to add your AWS credentials to GitHub Secrets so the pipeline can deploy to your AWS account without exposing them. Go to:
+```
+https://github.com/Delphiniraduku/stocks-serverless-pipeline/settings/secrets/actions
