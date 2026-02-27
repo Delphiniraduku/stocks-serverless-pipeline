@@ -49,6 +49,9 @@ AAPL, MSFT, GOOGL, AMZN, TSLA, NVDA
 | Secrets | AWS SSM Parameter Store |
 | Monitoring | CloudWatch Alarms + SNS |
 | State Management | S3 + DynamoDB Locking |
+| CI/CD | GitHub Actions |
+| Tracing | AWS X-Ray |
+| Dead Letter Queue | AWS SQS |
 
 ## Prerequisites
 
@@ -165,7 +168,7 @@ Note: The Terraform state S3 bucket and DynamoDB lock table are not managed by T
 
 ## Future Improvements
 
-- Add dead letter queue (DLQ) to Lambda for failed invocation recovery
-- Add X-Ray tracing for distributed request debugging
-- Implement CI/CD pipeline with GitHub Actions for automated deployment
-- Add historical data backfill script for initial data population
+- Add historical data backfill for dates beyond 90 days
+- Add Lambda Layers for shared dependencies across functions
+- Add input validation and request sanitization on API Lambda
+- Implement multi-region deployment for high availability
