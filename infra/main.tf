@@ -89,6 +89,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "ssm:GetParameter"
         ]
         Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${var.project_name}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.ingestion_dlq.arn
       }
     ]
   })
@@ -110,6 +117,10 @@ resource "aws_lambda_function" "ingestion" {
   source_code_hash = data.archive_file.ingestion_zip.output_base64sha256
   timeout          = 30
 
+  dead_letter_config {
+    target_arn = aws_sqs_queue.ingestion_dlq.arn
+  }
+
   environment {
     variables = {
       DYNAMODB_TABLE  = aws_dynamodb_table.movers.name
@@ -118,7 +129,6 @@ resource "aws_lambda_function" "ingestion" {
     }
   }
 }
-
 # ─── API Lambda ───────────────────────────────────────────────
 data "archive_file" "api_zip" {
   type        = "zip"
@@ -373,5 +383,38 @@ resource "aws_api_gateway_usage_plan" "main" {
   quota_settings {
     limit  = 1000
     period = "DAY"
+  }
+}
+
+# ─── Dead Letter Queue for Ingestion Lambda ───────────────────
+resource "aws_sqs_queue" "ingestion_dlq" {
+  name                      = "${var.project_name}-ingestion-dlq"
+  message_retention_seconds = 1209600  # 14 days
+
+  tags = {
+    Project = var.project_name
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "dlq_messages" {
+  alarm_name          = "${var.project_name}-dlq-messages"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "Messages in DLQ - ingestion Lambda failed to execute"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    QueueName = aws_sqs_queue.ingestion_dlq.name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+
+  tags = {
+    Project = var.project_name
   }
 }
