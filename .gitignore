@@ -18,3 +18,8 @@ venv/
 # Test response files
 infra/response.json
 infra/api-response.json
+
+# Local state files (state is now stored in S3)
+*.tfstate
+*.tfstate.backup
+.terraform/

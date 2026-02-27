@@ -291,3 +291,62 @@ resource "aws_s3_bucket_policy" "frontend_public" {
     }]
   })
 }
+
+# ─── SNS Topic for Alerts ─────────────────────────────────────
+resource "aws_sns_topic" "alerts" {
+  name = "${var.project_name}-alerts"
+}
+
+resource "aws_sns_topic_subscription" "email_alert" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+# ─── CloudWatch Alarm for Ingestion Lambda Failures ───────────
+resource "aws_cloudwatch_metric_alarm" "ingestion_errors" {
+  alarm_name          = "${var.project_name}-ingestion-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 86400
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "Ingestion Lambda failed - stock data may not have been collected"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.ingestion.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+
+  tags = {
+    Project = var.project_name
+  }
+}
+
+# ─── CloudWatch Alarm for API Lambda Failures ─────────────────
+resource "aws_cloudwatch_metric_alarm" "api_errors" {
+  alarm_name          = "${var.project_name}-api-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 5
+  alarm_description   = "API Lambda has more than 5 errors in 5 minutes"
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.api.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+
+  tags = {
+    Project = var.project_name
+  }
+}

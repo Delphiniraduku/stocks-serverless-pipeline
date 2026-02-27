@@ -5,3 +5,8 @@ variable "aws_region" {
 variable "project_name" {
   default = "stocks-pipeline"
 }
+
+variable "alert_email" {
+  description = "Email address to receive pipeline failure alerts"
+  default     = "delphiniradukunda11@gmail.com"
+}
