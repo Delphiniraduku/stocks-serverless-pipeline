@@ -96,6 +96,14 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "sqs:SendMessage"
         ]
         Resource = aws_sqs_queue.ingestion_dlq.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "xray:PutTraceSegments",
+          "xray:PutTelemetryRecords"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -121,6 +129,10 @@ resource "aws_lambda_function" "ingestion" {
     target_arn = aws_sqs_queue.ingestion_dlq.arn
   }
 
+  tracing_config {
+    mode = "Active"
+  }
+
   environment {
     variables = {
       DYNAMODB_TABLE  = aws_dynamodb_table.movers.name
@@ -144,6 +156,10 @@ resource "aws_lambda_function" "api" {
   filename         = data.archive_file.api_zip.output_path
   source_code_hash = data.archive_file.api_zip.output_base64sha256
   timeout          = 10
+
+  tracing_config {
+    mode = "Active"
+  }
 
   environment {
     variables = {
