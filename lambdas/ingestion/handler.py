@@ -82,19 +82,22 @@ def get_stock_data(ticker, api_key):
 
 
 def save_to_dynamodb(date, ticker, pct_change, close_price):
-    """Save the top mover to DynamoDB."""
+    """Save the top mover to DynamoDB with TTL of 90 days."""
     dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION_NAME)
     table = dynamodb.Table(DYNAMODB_TABLE)
+
+    # Calculate TTL as Unix timestamp 90 days from now
+    ttl_timestamp = int(time.time()) + (90 * 24 * 60 * 60)
 
     table.put_item(Item={
         "date": date,
         "ticker": ticker,
         "pct_change": str(round(pct_change, 4)),
-        "close_price": str(round(close_price, 4))
+        "close_price": str(round(close_price, 4)),
+        "ttl": ttl_timestamp
     })
 
-    print(f"Saved to DynamoDB: {date} | {ticker} | {pct_change}% | ${close_price}")
-
+    print(f"Saved to DynamoDB: {date} | {ticker} | {pct_change}% | ${close_price} | TTL: 90 days")
 
 def lambda_handler(event, context):
     """Main Lambda handler."""

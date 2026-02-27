@@ -23,7 +23,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ─── DynamoDB Table ───────────────────────────────────────────
 resource "aws_dynamodb_table" "movers" {
   name         = "${var.project_name}-movers"
   billing_mode = "PAY_PER_REQUEST"
@@ -32,6 +31,11 @@ resource "aws_dynamodb_table" "movers" {
   attribute {
     name = "date"
     type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
   }
 
   tags = {
