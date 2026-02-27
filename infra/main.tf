@@ -350,3 +350,24 @@ resource "aws_cloudwatch_metric_alarm" "api_errors" {
     Project = var.project_name
   }
 }
+
+# ─── API Gateway Usage Plan & Rate Limiting ───────────────────
+resource "aws_api_gateway_usage_plan" "main" {
+  name        = "${var.project_name}-usage-plan"
+  description = "Rate limiting for stocks pipeline API"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.rest_api.id
+    stage  = aws_api_gateway_stage.prod.stage_name
+  }
+
+  throttle_settings {
+    rate_limit  = 10
+    burst_limit = 20
+  }
+
+  quota_settings {
+    limit  = 1000
+    period = "DAY"
+  }
+}
