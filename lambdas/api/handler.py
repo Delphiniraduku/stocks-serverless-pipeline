@@ -17,24 +17,29 @@ class DecimalEncoder(json.JSONEncoder):
         return super().default(obj)
 
 
-def get_last_7_days():
-    """Generate a list of the last 7 days as strings."""
-    dates = []
-    for i in range(7):
-        date = datetime.now() - timedelta(days=i)
-        dates.append(date.strftime("%Y-%m-%d"))
-    return dates
+def get_last_7_trading_days():
+    """Generate a list of the last 7 trading days, skipping weekends."""
+    trading_days = []
+    current_date = datetime.now()
+
+    while len(trading_days) < 7:
+        current_date -= timedelta(days=1)
+        # 0=Monday, 4=Friday, 5=Saturday, 6=Sunday
+        if current_date.weekday() < 5:
+            trading_days.append(current_date.strftime("%Y-%m-%d"))
+
+    return trading_days
 
 
 def lambda_handler(event, context):
-    """Main Lambda handler - returns last 7 days of top movers."""
+    """Main Lambda handler - returns last 7 trading days of top movers."""
     print("Starting API Lambda...")
 
     dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION_NAME)
     table = dynamodb.Table(DYNAMODB_TABLE)
 
-    # Get last 7 days of dates
-    dates = get_last_7_days()
+    # Get last 7 trading days (skipping weekends)
+    dates = get_last_7_trading_days()
     results = []
 
     for date in dates:
